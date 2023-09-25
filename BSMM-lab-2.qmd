@@ -1,8 +1,8 @@
 ---
 title: "BSMM-lab-2"
 subtitle: "BSMM 8740 Fall 2023"
-author: "Add your name here"
-date: "Add the date here"
+author: "Harsha""
+date: "25/09/2023"
 format: html
 editor: visual
 self-contained: true
@@ -18,11 +18,48 @@ the_tate <- readr::read_delim("data/the-tate-collection.csv", ";", escape_double
 the_tate_artists <- readr::read_csv("data/the-tate-artists.csv")
 ```
 
+```{r}
+library(magrittr)     # the pipe
+library(tidyverse)    # for data wrangling + visualization
+library(tidymodels)   # for modeling
+library(gt)           # for making display tables
+library(gtExtras)     # helper functions for beautiful tables
+library(DataExplorer) #
+```
+
+```{r}
+the_tate <- readr::read_delim("data/the-tate-collection.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+the_tate_artists <- readr::read_csv("data/the-tate-artists.csv")
+
+```
+
 ## Exercises
 
 ### Exercise 1
 
 The `the_tate` dataset has \_\_\_ unique artists who worked from \_\_\_ to \_\_\_. The works were acquired between the years \_\_\_ and \_\_\_.
+
+```{r}
+
+# Step 1: General observations about the dataset
+general_observations <- the_tate %>%
+  summarize(
+    Unique_Artists = n_distinct(artist),
+    Period_Represented = range(dateText),
+    Acquisition_Period = range(acquisitionYear)
+  )
+
+# Print the general observations
+print(general_observations)
+
+# Step 2: Examine missing data
+introduce(the_tate)
+plot_missing(the_tate)
+
+```
+
+```{}
+```
 
 ### Exercise 2
 
@@ -34,11 +71,57 @@ It would require resolving missing year data for only \_\_ artists resolve resol
 
 The missing year data likely to be classified as \_\_\_\_.
 
+```{r}
+# Calculate the number of works with missing dates
+works_with_missing_dates <- sum(is.na(the_tate$dateText))
+print(works_with_missing_dates)
+
+# Count the number of works with missing dates for each artist
+missing_dates_by_artist <- table(the_tate$artist[is.na(the_tate$dateText)])
+
+# Convert to a tibble and sort in descending order
+missing_dates_by_artist_tibble <- tibble::as_tibble(missing_dates_by_artist)
+missing_dates_by_artist_tibble <- missing_dates_by_artist_tibble %>%
+  arrange(desc(N))
+print(missing_dates_by_artist_tibble)
+
+# Calculate the number of artists with works having missing dates
+artists_with_missing_dates <- sum(missing_dates_by_artist_tibble$N > 0)
+print(artists_with_missing_dates)
+
+# Mutate to add columns for percent of total missing data and cumulative percent
+missing_dates_by_artist_tibble <- missing_dates_by_artist_tibble %>%
+  mutate(
+    Percent_of_Total = N / works_with_missing_dates * 100,
+    Cumulative_Percent = cumsum(Percent_of_Total)
+  )
+print(missing_dates_by_artist_tibble)
+
+# Find the smallest number of artists needed to resolve at least 50% of missing year data
+smallest_number_of_artists <- which.max(missing_dates_by_artist_tibble$Cumulative_Percent >= 50)
+print(smallest_number_of_artists)
+
+```
+
 ### Exercise 3
 
 The artist with the most works in the Tate collection is \_\_\_.
 
 The artist with the tenth-most works in the Tate collection is \_\_\_.
+
+```{r}
+# Create a table with the number of works for each artist
+works_by_artist <- the_tate %>%
+  group_by(artist) %>%
+  summarize(Num_Works = n()) %>%
+  arrange(desc(Num_Works))
+
+# Show the top 10 artists by number of works
+top_10_artists <- head(works_by_artist, 10)
+
+# Print the table
+print(top_10_artists)
+```
 
 ### Exercise 4
 
